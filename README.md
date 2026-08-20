@@ -11,7 +11,7 @@ built-in cost estimate — so you always know roughly what a query will cost
 Named after [Argus Panoptes](https://en.wikipedia.org/wiki/Argus_Panoptes),
 the all-seeing giant of Greek myth.
 
-[![CI](https://github.com/sanchitmonga22/research_agent/actions/workflows/ci.yml/badge.svg)](https://github.com/sanchitmonga22/research_agent/actions/workflows/ci.yml)
+[![CI](https://github.com/sanchitmonga22/argus/actions/workflows/ci.yml/badge.svg)](https://github.com/sanchitmonga22/argus/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
 
@@ -120,7 +120,7 @@ add keys, call `argus run`. See that file for the full spec.
 ## Development
 
 ```bash
-git clone https://github.com/sanchitmonga22/research_agent.git argus
+git clone https://github.com/sanchitmonga22/argus.git
 cd argus
 pip install -e ".[all,dev]"
 

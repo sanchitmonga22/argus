@@ -42,8 +42,8 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/sanchitmonga22/research_agent"
-Repository = "https://github.com/sanchitmonga22/research_agent"
+Homepage = "https://github.com/sanchitmonga22/argus"
+Repository = "https://github.com/sanchitmonga22/argus"
 
 [project.scripts]
 argus = "argus.cli:main"

@@ -6,7 +6,7 @@ description: Search or deep-research the web through Exa, Perplexity, OpenAI, Ge
 # Argus Research
 
 Argus is a pip-installable CLI/Python package (`argus-research` on PyPI, repo:
-https://github.com/sanchitmonga22/research_agent) that fans one query out to
+https://github.com/sanchitmonga22/argus) that fans one query out to
 up to five providers in parallel — Exa, Perplexity, OpenAI, Gemini, Anthropic
 — in either a fast `search` mode or a slower, multi-step `deep_research` mode.
 
