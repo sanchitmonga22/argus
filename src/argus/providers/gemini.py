@@ -1,15 +1,17 @@
 """
-Google Gemini provider, via the google-genai SDK's Interactions API.
+Google Gemini provider, via the google-genai SDK's Interactions API
+(client.interactions.*, google-genai>=2.19 — verified against the
+installed SDK's type definitions).
 
 search        -> client.interactions.create(tools=[{"type": "google_search"}])
 deep_research -> client.interactions.create(agent="deep-research-preview-04-2026",
                  background=True), polled to completion
 
-Note: citation extraction here follows Google's documented shape
-(`content[i].annotations`, type "url_citation") but Google has not
-published a verbatim runnable example for it as of Aug 2026 — this is
-best-effort and defensively coded to degrade to "no sources" rather
-than crash if the shape drifts.
+Billing is per actual search *query* executed (confirmed verbatim in
+Google's pricing docs: "You will be charged for each individual search
+query performed"), not per prompt — `interaction.usage.grounding_tool_count`
+reports the real per-type count, which we use directly rather than
+assuming one query per call.
 """
 
 from __future__ import annotations
@@ -48,7 +50,7 @@ class GeminiProvider(Provider):
             )
             answer = getattr(interaction, "output_text", "") or ""
             sources = _extract_sources(interaction)
-            usage = {"requests": 1}
+            usage = _usage_dict(interaction)
             cost, note = estimate_cost("gemini", "search", usage)
 
             return ProviderResult(
@@ -95,7 +97,7 @@ class GeminiProvider(Provider):
 
             answer = getattr(interaction, "output_text", "") or ""
             sources = _extract_sources(interaction)
-            usage = {"requests": 1}
+            usage = _usage_dict(interaction)
             cost, note = estimate_cost("gemini", "deep_research", usage)
 
             return ProviderResult(
@@ -123,3 +125,22 @@ def _extract_sources(interaction) -> list[Source]:
     except Exception:
         pass
     return sources
+
+
+def _usage_dict(interaction) -> dict:
+    """Extract real token counts and the real grounding-search count from
+    `interaction.usage` (confirmed fields: total_input_tokens,
+    total_output_tokens, grounding_tool_count[].{type,count})."""
+    result = {"requests": 1, "searches": 0}
+    usage = getattr(interaction, "usage", None)
+    if usage is None:
+        return result
+
+    result["input_tokens"] = getattr(usage, "total_input_tokens", 0) or 0
+    result["output_tokens"] = getattr(usage, "total_output_tokens", 0) or 0
+
+    for entry in getattr(usage, "grounding_tool_count", None) or []:
+        if getattr(entry, "type", None) == "google_search":
+            result["searches"] += getattr(entry, "count", 0) or 0
+
+    return result

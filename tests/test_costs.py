@@ -9,7 +9,19 @@ def test_estimate_flat_per_request_fee() -> None:
 
 def test_estimate_token_based() -> None:
     cost, _ = estimate("openai", "search", {"input_tokens": 1_000_000, "output_tokens": 1_000_000})
-    assert cost == 1.25 + 10.00 + 0.01  # tokens + the default 1 request's flat fee
+    assert cost == 1.25 + 10.00  # tokens only — no searches reported, so no search fee
+
+
+def test_estimate_charges_per_search_not_per_request() -> None:
+    # OpenAI's web_search fee is per actual search invocation, not per API call —
+    # a request that made 3 searches should be billed for 3, not 1.
+    cost, _ = estimate("openai", "search", {"searches": 3})
+    assert cost == 10.0 * 3 / 1000
+
+
+def test_estimate_zero_searches_means_no_search_fee() -> None:
+    cost, _ = estimate("openai", "search", {"input_tokens": 100, "output_tokens": 100, "searches": 0})
+    assert cost is not None and cost < 0.005  # only trivial token cost, no $10/1k fee applied
 
 
 def test_estimate_unknown_provider_returns_none() -> None:

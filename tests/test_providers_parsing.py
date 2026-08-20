@@ -12,6 +12,7 @@ from argus.providers.anthropic_provider import _dedupe
 from argus.providers.anthropic_provider import _extract_sources as anthropic_sources
 from argus.providers.base import Source
 from argus.providers.gemini import _extract_sources as gemini_sources
+from argus.providers.gemini import _usage_dict as gemini_usage_dict
 from argus.providers.openai_provider import _extract_annotations, _usage_dict
 from argus.providers.perplexity import _parse_agent_output
 
@@ -33,12 +34,20 @@ def test_openai_extract_annotations_degrades_gracefully_on_bad_shape() -> None:
 
 
 def test_openai_usage_dict() -> None:
-    response = SimpleNamespace(usage=SimpleNamespace(input_tokens=10, output_tokens=20))
-    assert _usage_dict(response) == {"requests": 1, "input_tokens": 10, "output_tokens": 20}
+    response = SimpleNamespace(usage=SimpleNamespace(input_tokens=10, output_tokens=20), output=[])
+    assert _usage_dict(response) == {"requests": 1, "searches": 0, "input_tokens": 10, "output_tokens": 20}
 
 
 def test_openai_usage_dict_missing_usage() -> None:
-    assert _usage_dict(SimpleNamespace(usage=None)) == {"requests": 1}
+    assert _usage_dict(SimpleNamespace(usage=None, output=[])) == {"requests": 1, "searches": 0}
+
+
+def test_openai_usage_dict_counts_web_search_calls() -> None:
+    response = SimpleNamespace(
+        usage=None,
+        output=[SimpleNamespace(type="web_search_call"), SimpleNamespace(type="message"), SimpleNamespace(type="web_search_call")],
+    )
+    assert _usage_dict(response)["searches"] == 2
 
 
 def test_gemini_extract_sources() -> None:
@@ -54,6 +63,23 @@ def test_gemini_extract_sources() -> None:
 
 def test_gemini_extract_sources_missing_steps() -> None:
     assert gemini_sources(SimpleNamespace()) == []
+
+
+def test_gemini_usage_dict_extracts_tokens_and_search_count() -> None:
+    usage = SimpleNamespace(
+        total_input_tokens=42,
+        total_output_tokens=99,
+        grounding_tool_count=[
+            SimpleNamespace(type="google_search", count=3),
+            SimpleNamespace(type="google_maps", count=1),  # a different tool — must not be counted
+        ],
+    )
+    result = gemini_usage_dict(SimpleNamespace(usage=usage))
+    assert result == {"requests": 1, "searches": 3, "input_tokens": 42, "output_tokens": 99}
+
+
+def test_gemini_usage_dict_missing_usage() -> None:
+    assert gemini_usage_dict(SimpleNamespace(usage=None)) == {"requests": 1, "searches": 0}
 
 
 def test_anthropic_extract_sources_web_search_result() -> None:

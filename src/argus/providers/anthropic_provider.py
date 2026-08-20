@@ -1,13 +1,21 @@
 """
 Anthropic (Claude) provider, via the Messages API's server-executed
-web_search / web_fetch tools. Anthropic has no dedicated deep-research
-endpoint (see docs.claude.com/.../web-search-tool), so:
+web_search / web_fetch tools (platform.claude.com/docs/en/agents-and-tools/
+tool-use/web-search-tool). Anthropic has no dedicated deep-research
+endpoint, so:
 
 search        -> one messages.create call, web_search only, max_uses=3
 deep_research -> web_search + web_fetch together, higher max_uses, and we
                  keep resending on stop_reason="pause_turn" (Anthropic's
                  documented way to let a long multi-search turn continue)
                  until the model reaches "end_turn" or a hard turn cap.
+
+Uses the `_20260209` tool versions (dynamic filtering) — the current
+variant for claude-sonnet-5 — rather than the older `_20250305`/`_20250910`
+basic versions. Billing: claude-sonnet-5 tokens for the model itself, plus
+$10 per 1,000 *actual* web_search invocations (`usage.server_tool_use.
+web_search_requests`), which we count precisely rather than assuming one
+search per API call.
 """
 
 from __future__ import annotations
@@ -50,7 +58,7 @@ class AnthropicProvider(Provider):
         tools: list[dict],
         max_turns: int,
         model: str = "claude-sonnet-5",
-        max_tokens: int = 4096,
+        max_tokens: int = 16_000,
     ) -> ProviderResult:
         t0 = time.monotonic()
         try:
@@ -104,11 +112,11 @@ class AnthropicProvider(Provider):
 
 
 def _web_search(max_uses: int) -> dict:
-    return {"type": "web_search_20250305", "name": "web_search", "max_uses": max_uses}
+    return {"type": "web_search_20260209", "name": "web_search", "max_uses": max_uses}
 
 
 def _web_fetch(max_uses: int) -> dict:
-    return {"type": "web_fetch_20250910", "name": "web_fetch", "max_uses": max_uses}
+    return {"type": "web_fetch_20260209", "name": "web_fetch", "max_uses": max_uses}
 
 
 def _extract_sources(response) -> list[Source]:

@@ -139,10 +139,18 @@ def _extract_annotations(response) -> list[Source]:
 
 def _usage_dict(response) -> dict:
     usage = getattr(response, "usage", None)
-    if usage is None:
-        return {"requests": 1}
-    return {
-        "requests": 1,
-        "input_tokens": getattr(usage, "input_tokens", 0) or 0,
-        "output_tokens": getattr(usage, "output_tokens", 0) or 0,
-    }
+    result = {"requests": 1, "searches": _count_web_searches(response)}
+    if usage is not None:
+        result["input_tokens"] = getattr(usage, "input_tokens", 0) or 0
+        result["output_tokens"] = getattr(usage, "output_tokens", 0) or 0
+    return result
+
+
+def _count_web_searches(response) -> int:
+    """Count actual `web_search_call` items in the output — OpenAI's $10/1k
+    fee is per search invocation, not per API request, and a single call
+    can trigger zero, one, or several searches."""
+    try:
+        return sum(1 for item in response.output if getattr(item, "type", None) == "web_search_call")
+    except Exception:
+        return 0
