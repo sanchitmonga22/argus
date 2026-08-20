@@ -45,25 +45,57 @@ called out separately in the report.
 
 | Provider | Search mode | Deep research mode | Cost |
 |---|---|---|---|
-| **Exa** | `search_and_contents(type="auto")` — fast ranked sources | `search_and_contents(type="deep-reasoning")` — slower, more thorough ranking | $7/1k requests · $15/1k for deep-reasoning |
-| **Perplexity** | Agent API, `preset="low"` | Agent API, `preset="xhigh"` | $2-8/1M tokens + $5/1k requests |
-| **OpenAI** | Responses API + `web_search` tool | `o3-deep-research` (background) | $1.25-10/1M in, up to $40/1M out |
-| **Gemini** | Google Search grounding | Deep Research agent (background) | $1.50/$7.50 per 1M in/out + $14/1k grounded searches |
-| **Anthropic** | `web_search` tool, single turn | `web_search` + `web_fetch`, multi-turn agentic loop | $10/1k searches + normal token cost |
+| **Exa** | `search(type="auto")` — fast ranked sources | `search(type="deep-reasoning")` — slower, more thorough ranking | $7/1k requests · $15/1k for deep-reasoning |
+| **Perplexity** | Agent API, `preset="low"` | Agent API, `preset="xhigh"` | ~$3-15/1M tokens + $5-10/1k requests |
+| **OpenAI** | Responses API + `web_search` tool | `o3-deep-research` (background) | $1.25-10/1M in, up to $40/1M out + $10/1k searches |
+| **Gemini** | Google Search grounding | Deep Research agent (background) | $1.50/$7.50 per 1M in/out + $14/1k search queries |
+| **Anthropic** | `web_search` tool, single turn | `web_search` + `web_fetch`, multi-turn agentic loop | $3/$15 per 1M tokens + $10/1k searches |
 
-Run `argus costs` any time for the full pricing table with sources, or
-`argus costs --mode deep_research` for a live estimate scoped to whichever
-providers you've configured. Pricing is a best-effort snapshot from each
-provider's docs as of August 2026 — providers change pricing without notice,
-so treat it as an estimate, not an invoice. See each provider's module in
-`src/argus/providers/` for exact source links.
+`argus` always distinguishes **per-request** fees (Exa, Perplexity's raw
+Search API — one call is always one billable unit) from **per-search** fees
+(OpenAI, Gemini, Anthropic — a single call can trigger zero, one, or many
+searches server-side, so the real count is read back from each provider's
+own response and billed accordingly, not assumed to be one).
+
+Run `argus costs` any time for the full pricing table, or `argus costs
+--mode deep_research` for a live pre-flight estimate scoped to whichever
+providers you've configured — every `argus run` also prints this estimate
+before calling anything, and the *actual* per-provider cost (computed from
+real token/search counts returned by each API) in the final report.
+
+### Where these numbers come from
+
+Pricing is a best-effort snapshot of each provider's own published docs,
+verified directly (not via third-party aggregators) as of **August 20,
+2026** — providers change pricing without notice, so treat every figure as
+an estimate, not an invoice. Exact source pages:
+
+| Provider | Pricing page | API reference used |
+|---|---|---|
+| Exa | [exa.ai/docs/reference/pricing](https://exa.ai/docs/reference/pricing) | [exa.ai/docs/reference/search-api-guide](https://exa.ai/docs/reference/search-api-guide) — search() returns an exact `cost_dollars.total` per call, used in place of the static estimate whenever present |
+| Perplexity | [docs.perplexity.ai/getting-started/pricing](https://docs.perplexity.ai/getting-started/pricing) | [docs.perplexity.ai/docs/agent-api/quickstart](https://docs.perplexity.ai/docs/agent-api/quickstart), [.../agent-api/presets](https://docs.perplexity.ai/docs/agent-api/presets), [.../agent-api/migrate-from-sonar/overview](https://docs.perplexity.ai/docs/agent-api/migrate-from-sonar/overview) (preset→legacy-model mapping used to proxy Agent API pricing — not independently published), [.../search/quickstart](https://docs.perplexity.ai/docs/search/quickstart) (raw Search API, $5/1k requests, not currently used by this package's `search` mode) |
+| OpenAI | [developers.openai.com/api/docs/pricing](https://developers.openai.com/api/docs/pricing) | [.../guides/tools-web-search](https://developers.openai.com/api/docs/guides/tools-web-search), [.../guides/deep-research](https://developers.openai.com/api/docs/guides/deep-research), [.../models/o3-deep-research](https://developers.openai.com/api/docs/models/o3-deep-research), [.../models/o4-mini-deep-research](https://developers.openai.com/api/docs/models/o4-mini-deep-research) |
+| Gemini | [ai.google.dev/gemini-api/docs/pricing](https://ai.google.dev/gemini-api/docs/pricing) | [.../docs/models](https://ai.google.dev/gemini-api/docs/models), [.../docs/google-search](https://ai.google.dev/gemini-api/docs/google-search), [.../docs/deep-research](https://ai.google.dev/gemini-api/docs/deep-research) |
+| Anthropic | [platform.claude.com/docs/en/about-claude/pricing](https://platform.claude.com/docs/en/about-claude/pricing) | [.../agents-and-tools/tool-use/web-search-tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool) ($10/1k search fee), [.../agents-and-tools/tool-use/web-fetch-tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-fetch-tool) |
+
+Anthropic's Claude Sonnet 5 is currently at **intro pricing** ($2/$10 per 1M
+input/output tokens through 2026-08-31, standard rate $3/$15 after) — this
+package prices at the $3/$15 standard rate so estimates don't understate
+cost once the intro window ends.
 
 ## Install
 
+Not on PyPI yet — install from the [latest GitHub Release](https://github.com/sanchitmonga22/argus/releases/latest):
+
 ```bash
-pip install "argus-research[all]"     # every provider's SDK
-pip install "argus-research[exa,openai]"   # just the ones you use
+# from the release wheel directly (no clone needed)
+pip install "https://github.com/sanchitmonga22/argus/releases/download/v0.1.0/argus_research-0.1.0-py3-none-any.whl[all]"
+
+# or straight from a tag via git
+pip install "argus-research[all] @ git+https://github.com/sanchitmonga22/argus.git@v0.1.0"
 ```
+
+`[all]` pulls in every provider's SDK; swap in just the ones you use, e.g. `[exa,openai]`.
 
 Copy `.env.example` to `.env` and fill in whichever keys you have — one is
 enough to get started:
