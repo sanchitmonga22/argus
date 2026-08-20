@@ -85,29 +85,48 @@ cost once the intro window ends.
 
 ## Install
 
-Not on PyPI yet — install from the [latest GitHub Release](https://github.com/sanchitmonga22/argus/releases/latest):
+Not on PyPI yet — install straight from GitHub (always tracks the latest commit on `main`):
 
 ```bash
-# from the release wheel directly (no clone needed)
-pip install "https://github.com/sanchitmonga22/argus/releases/download/v0.1.0/argus_research-0.1.0-py3-none-any.whl[all]"
+pip install "argus-research[all] @ git+https://github.com/sanchitmonga22/argus.git"
+```
 
-# or straight from a tag via git
-pip install "argus-research[all] @ git+https://github.com/sanchitmonga22/argus.git@v0.1.0"
+Or pin to a specific tagged release's wheel from the [Releases page](https://github.com/sanchitmonga22/argus/releases) — e.g. for v0.1.1:
+
+```bash
+pip install "https://github.com/sanchitmonga22/argus/releases/download/v0.1.1/argus_research-0.1.1-py3-none-any.whl[all]"
 ```
 
 `[all]` pulls in every provider's SDK; swap in just the ones you use, e.g. `[exa,openai]`.
 
-Copy `.env.example` to `.env` and fill in whichever keys you have — one is
-enough to get started:
+## Onboarding — set up your API keys once
 
 ```bash
-cp .env.example .env
+argus init
 ```
+
+Walks you through each provider (with a link to get a key), one is enough
+to get started. Keys are saved to `~/.config/argus/.env` (`%APPDATA%\argus\
+.env` on Windows), permissioned owner-read/write only, and picked up
+automatically by `argus` from **any directory afterward** — no per-project
+setup, no shell profile edits. Run it again any time to add or replace a
+key. If a key is already sitting in your shell environment, `init` offers
+to save it into this file too.
+
+Precedence when multiple sources are set (highest wins): real environment
+variables → `./.env` in the current directory (project-local override) →
+`~/.config/argus/.env` (the global file `init` writes). `argus providers`
+shows exactly which of the three each configured key is coming from.
+
+Prefer to manage it yourself instead of the wizard? Copy `.env.example` to
+`.env` in whichever directory you run `argus` from — same effect for that
+project.
 
 ## CLI
 
 ```bash
-argus providers                              # what's configured
+argus init                                   # one-time: configure & save API keys
+argus providers                              # what's configured, and where each key came from
 argus costs                                  # static pricing table
 argus costs --mode deep_research             # estimate for your configured keys
 

@@ -14,11 +14,13 @@ up to five providers in parallel — Exa, Perplexity, OpenAI, Gemini, Anthropic
 
 ```bash
 pip install "argus-research[all]"
-cp .env.example .env   # then fill in whichever API keys you have — one is enough
+argus init   # interactive — one key is enough to get started
 ```
 
-Only providers with a key present in the environment (or `.env`) activate;
-others are skipped automatically.
+`argus init` saves keys to `~/.config/argus/.env` (owner-read/write only),
+picked up automatically by `argus` from any directory afterward — no
+per-project `.env` needed. Only providers with a key configured activate;
+others are skipped automatically. Run `argus providers` to check status.
 
 ## Using it
 

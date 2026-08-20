@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "argus-research"
-version = "0.1.0"
+version = "0.1.1"
 description = "One query, every search engine, in parallel — Exa, Perplexity, OpenAI, Gemini, and Claude, unified behind one interface with a built-in cost calculator."
 readme = "README.md"
 license = "MIT"

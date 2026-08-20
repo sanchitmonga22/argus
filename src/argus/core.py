@@ -15,8 +15,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-from dotenv import load_dotenv
-
+from .config import load_file_env
 from .costs import preflight_estimate
 from .providers import REGISTRY, Mode, ProviderResult
 
@@ -125,13 +124,14 @@ class Argus:
         outputs_dir: Path | None = None,
         load_env: bool = True,
     ) -> None:
-        if load_env:
-            load_dotenv()
+        # Priority: explicit api_keys > real env vars > ./.env (project) >
+        # ~/.config/argus/.env (global, written by `argus init`).
+        file_env = load_file_env() if load_env else {}
 
         api_keys = api_keys or {}
         self._instances = {}
         for name, cls in REGISTRY.items():
-            key = api_keys.get(name) or os.environ.get(cls.env_key, "")
+            key = api_keys.get(name) or os.environ.get(cls.env_key) or file_env.get(cls.env_key, "")
             if key:
                 self._instances[name] = cls(api_key=key)
 
